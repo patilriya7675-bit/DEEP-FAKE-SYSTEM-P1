@@ -1,4 +1,41 @@
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
 .venv/
-*.pyc
+venv/
+env/
+
+# Secrets and environment variables
 .env
+.env.local
+*.pem
+*.key
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# User-uploaded files and runtime data
+uploads/*
+outputs/
+logs/
+
+# Datasets
+datasets/
+
+# ML model weights
+*.pt
+*.pth
+*.onnx
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+Thumbs.db
