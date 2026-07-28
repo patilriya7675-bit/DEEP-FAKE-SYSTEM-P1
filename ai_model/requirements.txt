@@ -1,0 +1,14 @@
+tensorflow
+keras
+opencv-python
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+tqdm
+Pillow
+h5py
+librosa
+soundfile
+moviepy
