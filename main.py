@@ -8,7 +8,9 @@ from backend.api.routes.auth import router as auth_router
 # Import Authentication Dependencies
 from backend.security.auth import (
     get_current_user,
-    admin_required
+    admin_required,
+    analyst_required,
+    user_required
 )
 
 app = FastAPI(
@@ -21,22 +23,37 @@ app = FastAPI(
 app.include_router(auth_router)
 
 
-@app.get("/")
+@app.get("/", tags=["Home"])
 def home():
+    """
+    Home Endpoint
+
+    Check whether the API is running successfully.
+    """
     return {
         "message": "Welcome to Deepfake Detection API",
         "status": "Running Successfully"
     }
 
 
-@app.post("/upload-video")
+@app.post("/upload-video", tags=["Upload"])
 async def upload_video(
     video: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Upload a video.
-    Only authenticated users can access this endpoint.
+
+    Authentication Required:
+    - Admin
+    - Analyst
+    - User
+
+    Returns:
+    - Uploaded filename
+    - Content type
+    - File location
+    - Username of uploader
     """
 
     # Create uploads/videos folder if it doesn't exist
@@ -58,16 +75,67 @@ async def upload_video(
     }
 
 
-@app.get("/admin/dashboard")
+@app.get("/admin/dashboard", tags=["Admin"])
 def admin_dashboard(
     current_user: dict = Depends(admin_required)
 ):
     """
-    Admin-only endpoint.
+    Admin Dashboard
+
+    Access:
+    - Admin only
+
+    Purpose:
+    - Administrative operations
     """
 
     return {
         "message": "Welcome Admin",
+        "user": current_user["sub"],
+        "role": current_user["role"]
+    }
+
+
+@app.get("/analyst/dashboard", tags=["Analyst"])
+def analyst_dashboard(
+    current_user: dict = Depends(analyst_required)
+):
+    """
+    Analyst Dashboard
+
+    Access:
+    - Admin
+    - Analyst
+
+    Purpose:
+    - AI analysis and reporting
+    """
+
+    return {
+        "message": "Welcome Analyst",
+        "user": current_user["sub"],
+        "role": current_user["role"]
+    }
+
+
+@app.get("/user/profile", tags=["User"])
+def user_profile(
+    current_user: dict = Depends(user_required)
+):
+    """
+    User Profile
+
+    Access:
+    - Admin
+    - Analyst
+    - User
+
+    Purpose:
+    - View authenticated user information
+    """
+
+    return {
+        "message": "Welcome User",
         "user": current_user["sub"],
         "role": current_user["role"]
     }

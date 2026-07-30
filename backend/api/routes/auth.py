@@ -21,35 +21,53 @@ class LoginRequest(BaseModel):
     password: str
 
 
-fake_user = {
-    "username": "pratik",
-    "password": hash_password("Pratik@123"),
-    "role": "admin"
+# Fake database (temporary)
+fake_users = {
+    "pratik": {
+        "password": hash_password("Pratik@123"),
+        "role": "admin"
+    },
+    "riya": {
+        "password": hash_password("Riya@123"),
+        "role": "analyst"
+    },
+    "guest": {
+        "password": hash_password("Guest@123"),
+        "role": "user"
+    }
 }
 
 
 @router.post("/login")
 def login(data: LoginRequest):
+    """
+    Authenticate user and return JWT token.
+    """
 
-    if data.username != fake_user["username"]:
+    # Check if username exists
+    if data.username not in fake_users:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username"
         )
 
+    user = fake_users[data.username]
+
+    # Verify password
     if not verify_password(
         data.password,
-        fake_user["password"]
+        user["password"]
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid password"
         )
 
+    # Create JWT token
     token = create_access_token(
         {
             "sub": data.username,
-            "role": fake_user["role"]
+            "role": user["role"]
         }
     )
 

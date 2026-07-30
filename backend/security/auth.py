@@ -9,6 +9,9 @@ security = HTTPBearer()
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+    """
+    Verify JWT token and return decoded payload.
+    """
 
     token = credentials.credentials
 
@@ -23,15 +26,36 @@ def get_current_user(
     return payload
 
 
-def admin_required(
-    current_user: dict = Depends(get_current_user)
-):
+def require_roles(*allowed_roles):
+    """
+    Allow access only to the specified roles.
+    """
 
-    if current_user.get("role") != "admin":
+    def role_checker(
+        current_user: dict = Depends(get_current_user)
+    ):
+        if current_user.get("role") not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied"
+            )
 
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
+        return current_user
 
-    return current_user
+    return role_checker
+
+
+# Role hierarchy
+
+admin_required = require_roles("admin")
+
+analyst_required = require_roles(
+    "admin",
+    "analyst"
+)
+
+user_required = require_roles(
+    "admin",
+    "analyst",
+    "user"
+)
