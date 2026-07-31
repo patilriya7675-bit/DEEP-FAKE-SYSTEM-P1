@@ -1,6 +1,17 @@
-from fastapi import FastAPI, UploadFile, File, Depends
+from fastapi import FastAPI, UploadFile, File, Depends, Request
 from pathlib import Path
 import shutil
+
+# SlowAPI Imports
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler
+
+# Rate Limiter
+from backend.security.rate_limiter import limiter
+
+# Security Headers Middleware
+from backend.security.security_headers import SecurityHeadersMiddleware
 
 # Import Authentication Router
 from backend.api.routes.auth import router as auth_router
@@ -18,6 +29,20 @@ app = FastAPI(
     description="Backend API for Deepfake Detection System",
     version="1.0.0"
 )
+
+# -----------------------------
+# Configure Rate Limiter
+# -----------------------------
+app.state.limiter = limiter
+
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler
+)
+
+# Register Middlewares
+app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Register Authentication Router
 app.include_router(auth_router)
@@ -37,7 +62,9 @@ def home():
 
 
 @app.post("/upload-video", tags=["Upload"])
+@limiter.limit("10/minute")
 async def upload_video(
+    request: Request,
     video: UploadFile = File(...),
     current_user: dict = Depends(get_current_user)
 ):
@@ -56,13 +83,11 @@ async def upload_video(
     - Username of uploader
     """
 
-    # Create uploads/videos folder if it doesn't exist
     upload_dir = Path("uploads/videos")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = upload_dir / video.filename
 
-    # Save uploaded video
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(video.file, buffer)
 

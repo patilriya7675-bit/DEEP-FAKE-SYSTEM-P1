@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from pydantic import BaseModel
 
 from backend.security.password import (
@@ -9,6 +9,8 @@ from backend.security.password import (
 from backend.security.jwt_handler import (
     create_access_token
 )
+
+from backend.security.rate_limiter import limiter
 
 router = APIRouter(
     prefix="/auth",
@@ -39,7 +41,8 @@ fake_users = {
 
 
 @router.post("/login")
-def login(data: LoginRequest):
+@limiter.limit("5/minute")
+def login(request: Request, data: LoginRequest):
     """
     Authenticate user and return JWT token.
     """
