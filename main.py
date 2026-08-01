@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Depends, Request
+from fastapi import FastAPI, UploadFile, File, Depends, Request, HTTPException, status
 from pathlib import Path
 import shutil
 
@@ -12,6 +12,12 @@ from backend.security.rate_limiter import limiter
 
 # Security Headers Middleware
 from backend.security.security_headers import SecurityHeadersMiddleware
+
+# File Validation
+from backend.security.file_validator import (
+    validate_video_extension,
+    validate_file_size
+)
 
 # Import Authentication Router
 from backend.api.routes.auth import router as auth_router
@@ -50,11 +56,6 @@ app.include_router(auth_router)
 
 @app.get("/", tags=["Home"])
 def home():
-    """
-    Home Endpoint
-
-    Check whether the API is running successfully.
-    """
     return {
         "message": "Welcome to Deepfake Detection API",
         "status": "Running Successfully"
@@ -69,25 +70,43 @@ async def upload_video(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Upload a video.
-
-    Authentication Required:
-    - Admin
-    - Analyst
-    - User
-
-    Returns:
-    - Uploaded filename
-    - Content type
-    - File location
-    - Username of uploader
+    Secure Video Upload
     """
 
+    # -----------------------------
+    # Validate File Extension
+    # -----------------------------
+    if not validate_video_extension(video.filename):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format. Only MP4, AVI, MOV and MKV files are allowed."
+        )
+
+    # -----------------------------
+    # Validate File Size
+    # -----------------------------
+    file_bytes = await video.read()
+
+    if not validate_file_size(len(file_bytes)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size exceeds the maximum limit of 100 MB."
+        )
+
+    # Reset file pointer
+    await video.seek(0)
+
+    # -----------------------------
+    # Create Upload Folder
+    # -----------------------------
     upload_dir = Path("uploads/videos")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = upload_dir / video.filename
 
+    # -----------------------------
+    # Save Uploaded File
+    # -----------------------------
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(video.file, buffer)
 
@@ -104,16 +123,6 @@ async def upload_video(
 def admin_dashboard(
     current_user: dict = Depends(admin_required)
 ):
-    """
-    Admin Dashboard
-
-    Access:
-    - Admin only
-
-    Purpose:
-    - Administrative operations
-    """
-
     return {
         "message": "Welcome Admin",
         "user": current_user["sub"],
@@ -125,17 +134,6 @@ def admin_dashboard(
 def analyst_dashboard(
     current_user: dict = Depends(analyst_required)
 ):
-    """
-    Analyst Dashboard
-
-    Access:
-    - Admin
-    - Analyst
-
-    Purpose:
-    - AI analysis and reporting
-    """
-
     return {
         "message": "Welcome Analyst",
         "user": current_user["sub"],
@@ -147,18 +145,6 @@ def analyst_dashboard(
 def user_profile(
     current_user: dict = Depends(user_required)
 ):
-    """
-    User Profile
-
-    Access:
-    - Admin
-    - Analyst
-    - User
-
-    Purpose:
-    - View authenticated user information
-    """
-
     return {
         "message": "Welcome User",
         "user": current_user["sub"],

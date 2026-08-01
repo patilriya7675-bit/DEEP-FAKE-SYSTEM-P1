@@ -16,6 +16,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
         # Basic Content Security Policy
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
+       # response.headers["Content-Security-Policy"] = "default-src 'self'"
 
         return response
