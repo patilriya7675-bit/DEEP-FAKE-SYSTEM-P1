@@ -10,6 +10,7 @@ app = FastAPI(
 # Include video upload routes
 app.include_router(video_router)
 
+
 @app.get("/")
 def home():
     return {
