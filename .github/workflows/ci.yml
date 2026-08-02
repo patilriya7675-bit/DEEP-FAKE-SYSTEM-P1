@@ -1,0 +1,42 @@
+name: RTDD CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+      - setup/pratik-security-foundation
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Imports
+        run: |
+          python -c "import fastapi"
+          python -c "import uvicorn"
+          python -c "import cv2"
+          python -c "import jose"
+
+      - name: Python Syntax Check
+        run: |
+          python -m compileall .
