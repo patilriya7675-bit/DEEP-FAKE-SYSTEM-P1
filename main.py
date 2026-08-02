@@ -19,6 +19,9 @@ from backend.security.file_validator import (
     validate_file_size
 )
 
+# Video Metadata Validator
+from backend.security.video_validator import get_video_metadata
+
 # Import Authentication Router
 from backend.api.routes.auth import router as auth_router
 
@@ -110,11 +113,23 @@ async def upload_video(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(video.file, buffer)
 
+    # -----------------------------
+    # Validate Uploaded Video
+    # -----------------------------
+    metadata = get_video_metadata(str(file_path))
+
+    if metadata is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is not a valid video."
+        )
+
     return {
         "filename": video.filename,
         "content_type": video.content_type,
         "saved_to": str(file_path),
         "uploaded_by": current_user["sub"],
+        "video_metadata": metadata,
         "message": "Video uploaded and saved successfully"
     }
 
